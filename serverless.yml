@@ -1,0 +1,249 @@
+frameworkVersion: '2'
+variablesResolutionMode: 20210326
+# 서비스 명
+service: sample-api
+
+plugins:
+  # 자동으로 기존 rest api gateway 연결되도록 하는 plugin
+  - serverless-import-apigateway
+  # cloudwatch 구독필터 자동 추가 plugin
+  - serverless-plugin-log-subscription
+  # local 환경 테스트를 위한 plugin
+  - serverless-offline
+
+custom:
+  # 기존 rest api-gateway 연결용 게이트웨이 명칭
+  importApiGateway:
+    name: ${self:service}-gateway-${sls:stage}
+  # gateway 및 네트워크 관련 설정
+  config: ${file(serverless-config/${sls:stage}/config.yml)}
+  # database 설정
+  database: ${file(serverless-config/${sls:stage}/database.yml)}
+  # 전체 function cloudwatch 로그 firehose로 전달 추가.
+  logSubscription: ${self:custom.config.custom.logSubscription}
+  ## 기타 필요시 custom yml 추가하여 사용 가능
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  lambdaHashingVersion: 20201221
+  # 배포 환경(기본값 dev). sls deploy or sls offline start 시 옵션 -s (stage | local) 과 같이 설정하여 배포 및 테스트 가능.
+  stage: dev
+  region: ap-northeast-2
+  # CloudFormation에 {서비스명}-{환경} 명으로 stack이 생성 된다.
+  stackName: ${self:service}-${sls:stage}
+  # 로그 보존 기간
+  logRetentionInDays: 90
+  # 전역 환경 변수
+  environment:
+    # layer로 추가한 node_module 라이브러리 기본 경로 path
+    NODE_PATH: './:/opt'
+    # 배포 된 환경 profile 정보
+    PROFILE: ${sls:stage}
+    # logging 에서 사용되는 서비스 명 환경 변수
+    SERVICE: ${self:service}
+  # lambda role 공통 지정
+  iam:
+    role: arn:aws:iam::123456789012:role/lambda-common-role
+
+package:
+  # 경로별 개별 압축 설정으로, true로 사용
+  individually: true
+  # 각 lambda 펑션에서 기본 패키지에 포함된 내용은 배포 제외되도록 설정
+  # 공통 logging, response 처리 스크립트 포함
+  patterns:
+    - '!serverless-config/**'
+    - '!node_modules/**'
+    - '!package.json'
+    - '!package-lock.json'
+    - '!readme.md'
+    - '!*.sh'
+
+layers:
+  # lambda function에서 필요한 공통 lib layer 설정. 공통 라이브러리 미필요시 제거.
+  # 수정시에는 description 만 변경
+  CommonLayer:
+    path: node_modules
+    name: ${self:service}-common-layer-${sls:stage}
+    description: ${self:service} common lambda nodejs layer
+    allowedAccounts:
+      - '*'
+    compatibleRuntimes:
+      - nodejs14.x
+
+functions:
+  # function 명 지정(lambda 명칭 생성 규칙이 '{서비스명}-{stage}-{펑션명}' 으로 생성 된다.
+  sampleApi:
+    # lambda 호출시 실행 될 function
+    handler: index.handler
+    description: ${self:service} function
+    # lambda 동작 메모리 설정. 최소 128 ~ 해당 function에서 무거운 작업이 필요한 경우 늘려준다. cloudwatch 로그에서 동작하는데 사용된 메모리 확인 가능.
+    memorySize: 128
+    # lambda 동작 timeout 설정.
+    timeout: 10
+    # lambda function vpc 설정 필요시 사용 정보(RDS 및 각 환경VPC 설정 필요한 경우에만 사용.
+    # vpc 할당시 내부 네트워크 IP 할당 시간 지연이 발생하여 약간의 lambda function load 지연 발생
+    vpc: ${self:custom.config.functions.vpc}
+    # node_module 패키지가 추가적으로 필요 할 경우 layer 계층을 이용하여, 라이브러리 사용 할 경우 지정
+    layers:
+      - { Ref: CommonLayerLambdaLayer }
+    # 펑션 내에서 사용 되는 환경 변수(불필요시 삭제)
+    environment:
+      MAIN_MASTER_HOST: ${self:custom.database.mainMaster.host}
+      MAIN_MASTER_PORT: ${self:custom.database.mainMaster.port}
+      MAIN_MASTER_USERNAME: ${self:custom.database.mainMaster.username}
+      MAIN_MASTER_PASSWORD: ${self:custom.database.mainMaster.password}
+      MAIN_MASTER_DATABASE: ${self:custom.database.mainMaster.database}
+
+      MAIN_SLAVE_HOST: ${self:custom.database.mainSlave.host}
+      MAIN_SLAVE_PORT: ${self:custom.database.mainSlave.port}
+      MAIN_SLAVE_USERNAME: ${self:custom.database.mainSlave.username}
+      MAIN_SLAVE_PASSWORD: ${self:custom.database.mainSlave.password}
+      MAIN_SLAVE_DATABASE: ${self:custom.database.mainSlave.database}
+
+      RDS_PROXY_MASTER_HOST: ${self:custom.database.rdsProxyMaster.host}
+      RDS_PROXY_MASTER_PORT: ${self:custom.database.rdsProxyMaster.port}
+      RDS_PROXY_MASTER_USERNAME: ${self:custom.database.rdsProxyMaster.username}
+      RDS_PROXY_MASTER_PASSWORD: ${self:custom.database.rdsProxyMaster.password}
+      RDS_PROXY_MASTER_DATABASE: ${self:custom.database.rdsProxyMaster.database}
+
+      REDIS_HOST: ${self:custom.database.redis.host}
+      REDIS_PORT: ${self:custom.database.redis.port}
+
+    # api-gateway 연결할 endpoint 설정
+    events:
+      ## sample json 데이터 가져오기(예제)
+      - http:
+          # endpoint /기능그룹/상세기능 의 패턴으로 지정.
+          path: /sample/getSample
+          method: get
+          # cors 설정 적용
+          cors: ${self:custom.config.functions.cors}
+          # api-gateway 에서 필터링 및 내부적으로 처리 필요한 토큰값 파싱 처리.
+          # App용 토큰값(로그인) 필수
+          # authorizer: ${self:custom.config.functions.authorizer.appCommonTokenAuthorizer}
+          # App용 토큰값(로그인) 미필수
+          # authorizer: ${self:custom.config.functions.authorizer.appCommonAuthorizer}
+          # Front용 토큰값(로그인) 필수
+          # authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+          # Front용 토큰값(로그인) 미필수
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## html 페이지 이동
+      - http:
+          path: /html
+          method: get
+          cors: ${self:custom.config.functions.cors}
+      ## sequelize 이용한 데이터 삭제
+      - http:
+          path: /orm/sequelize/{sampleSeq}
+          method: delete
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## sequelize 이용한 sampleSeq로 데이터 가져오기
+      - http:
+          path: /orm/sequelize/{sampleSeq}
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## sequelize 이용한 데이터 추가
+      - http:
+          path: /orm/sequelize
+          method: post
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## sequelize 이용한 데이터 목록 가져오기
+      - http:
+          path: /orm/sequelize
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## sequelize 이용한 데이터 트랜잭션 테스트. 강제로 오류나게 하여 트랜잭션 롤백 테스트
+      - http:
+          path: /orm/sequelize/transaction
+          method: post
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## sequelize 이용한 데이터 업데이트
+      - http:
+          path: /orm/sequelize/{sampleSeq}
+          method: put
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## mysql connector 이용한 raw 쿼리로 데이터 삭제
+      - http:
+          path: /rds/mariadb/{sampleSeq}
+          method: delete
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## mysql connector 이용한 raw 쿼리로 데이터 조회
+      - http:
+          path: /rds/mariadb/{sampleSeq}
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## mysql connector 이용한 raw 쿼리로 데이터 등록
+      - http:
+          path: /rds/mariadb
+          method: post
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## mysql connector 이용한 raw 쿼리로 데이터 목록 조회
+      - http:
+          path: /rds/mariadb
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## mysql connector 이용한 raw 쿼리로 데이터 수정
+      - http:
+          path: /rds/mariadb/{sampleSeq}
+          method: put
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## rds proxy 이용한 raw 쿼리로 데이터 삭제
+      - http:
+          path: /rds/proxy/{sampleSeq}
+          method: delete
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## rds proxy 이용한 raw 쿼리로 데이터 조회
+      - http:
+          path: /rds/proxy/{sampleSeq}
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## rds proxy 이용한 raw 쿼리로 데이터 등록
+      - http:
+          path: /rds/proxy
+          method: post
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## rds proxy 이용한 raw 쿼리로 데이터 목록 조회
+      - http:
+          path: /rds/proxy
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## rds proxy 이용한 raw 쿼리로 데이터 수정
+      - http:
+          path: /rds/proxy/{sampleSeq}
+          method: put
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## redis 데이터 삭제
+      - http:
+          path: /redis/{key}
+          method: delete
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}
+      ## redis 데이터 조회
+      - http:
+          path: /redis/{key}
+          method: get
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonAuthorizer}
+      ## redis 데이터 등록/수정
+      - http:
+          path: /redis/{key}
+          method: post
+          cors: ${self:custom.config.functions.cors}
+          authorizer: ${self:custom.config.functions.authorizer.frontCommonTokenAuthorizer}

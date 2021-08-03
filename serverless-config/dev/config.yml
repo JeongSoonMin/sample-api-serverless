@@ -1,0 +1,55 @@
+# function에서 gateway 및 기타 리소스에 연결될 설정 추가.
+functions:
+  # 기존 생성된 권한부여자 설정
+  authorizer:
+    appCommonAuthorizer:
+      type: request
+      arn: arn:aws:lambda:ap-northeast-2:123456789012:function:api-gateway-authorizer-dev-appCommonAuthorizer
+      managedExternally: false
+      resultTtlInSeconds: 0
+      identitySource: method.request.header.User-Agent
+    appCommonTokenAuthorizer:
+      type: request
+      arn: arn:aws:lambda:ap-northeast-2:123456789012:function:api-gateway-authorizer-dev-appCommonTokenAuthorizer
+      managedExternally: false
+      resultTtlInSeconds: 0
+      identitySource: method.request.header.Authorization
+    frontCommonAuthorizer:
+      type: request
+      arn: arn:aws:lambda:ap-northeast-2:123456789012:function:api-gateway-authorizer-dev-frontCommonAuthorizer
+      managedExternally: false
+      resultTtlInSeconds: 0
+      identitySource: method.request.header.User-Agent
+    frontCommonTokenAuthorizer:
+      type: request
+      arn: arn:aws:lambda:ap-northeast-2:123456789012:function:api-gateway-authorizer-dev-frontCommonTokenAuthorizer
+      managedExternally: false
+      resultTtlInSeconds: 0
+      identitySource: method.request.header.Authorization
+  # cors 설정
+  cors:
+    origin: '*'
+    headers:
+      - '*'
+      - Os-Type
+      - App-Version
+      - Authorization
+      - Content-Type
+      - X-Forwarded-For
+    allowCredentials: true
+  # lambda function vpc 설정 필요시 사용 정보(RDS 및 각 환경VPC 설정 필요한 경우에만 사용.
+  # vpc 할당시 내부 네트워크 IP 할당 시간 지연이 발생하여 약간의 lambda function load 지연 발생
+  vpc:
+    securityGroupIds:
+      - "sg-xxxxxxxxxxxxxxx"
+    subnetIds:
+      - "subnet-xxxxxxxxxxxxxxx"
+      - "subnet-xxxxxxxxxxxxxxx"
+
+# custom 설정 필요사항
+custom:
+  # 각 function에서 Cloudwatch log 에 찍은 로그를 lambda subscription 자동 추가하여, firehose -> es로 전달하도록 추가.
+  logSubscription:
+    enabled: true
+    filterPattern: '[timestamp=*Z, request_id="*-*", log_level, event]'
+    destinationArn: 'arn:aws:lambda:ap-northeast-2:123456789012:function:cloudwatch-service-log-firehose-processor'

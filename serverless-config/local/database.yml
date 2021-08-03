@@ -1,0 +1,27 @@
+mainMaster:
+  host: 'main-db-001'
+  port: 3306
+  username: 'test'
+  password: 'test1234'
+  database: 'test'
+mainSlave:
+  host: 'main-db-002'
+  port: 3306
+  username: 'test'
+  password: 'test1234'
+  database: 'test'
+rdsProxyMaster:
+  host: 'dev-test-rds-proxy.proxy-xxxxxxxxx.ap-northeast-2.rds.amazonaws.com'
+  port: 3306
+  username: 'test'
+  password: 'jnapp2018$'
+  database: 'test'
+qnaSlave:
+  host: 'dev-test-rds-proxy-read-only.endpoint.proxy-xxxxxxxxx.ap-northeast-2.rds.amazonaws.com'
+  port: 3306
+  username: 'test'
+  password: 'jnapp2018$'
+  database: 'test'
+redis:
+  host: 'dev-redis.xxxxxx.0001.apn2.cache.amazonaws.com'
+  port: 6379

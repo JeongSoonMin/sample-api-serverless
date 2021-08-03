@@ -1,0 +1,9 @@
+# package directories
+.idea
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+package-lock.json
