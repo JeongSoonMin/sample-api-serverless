@@ -5,7 +5,7 @@ const Redis = require('ioredis');
 
 // common js import
 const logger = require('../../../common/logging/common-logging.js');
-const jnResponse = require('../../../common/response/response.js');
+const commonResponse = require('../../../common/response/response.js');
 
 // redis 접속 정보 설정
 const client = new Redis(process.env.REDIS_PORT, process.env.REDIS_HOST);
@@ -19,5 +19,5 @@ module.exports.main = async (event) => {
     return result;
   });
 
-  return jnResponse.success(sampleData);
+  return commonResponse.success(sampleData);
 };

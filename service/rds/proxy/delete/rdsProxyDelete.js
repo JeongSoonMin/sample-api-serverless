@@ -1,6 +1,6 @@
 'use strict';
 const logger = require('../../../../common/logging/common-logging.js');
-const jnResponse = require('../../../../common/response/response.js');
+const commonResponse = require('../../../../common/response/response.js');
 const mysql2 = require('mysql2/promise');
 
 const rdsProxyMasterDbConfig = {
@@ -25,7 +25,7 @@ module.exports.main = async (event) => {
     } catch(err) {
         logger.error(event, err);
 
-        return jnResponse.failed("DB 접속 오류", err);
+        return commonResponse.failed("DB 접속 오류", err);
     }
 
     // 조회
@@ -52,7 +52,7 @@ module.exports.main = async (event) => {
     } catch(err) {
         logger.error(event, err);
 
-        return jnResponse.failed("DB Query 오류", err);
+        return commonResponse.failed("DB Query 오류", err);
     } finally {
         // 접속 종료
         if (connection != null) {
@@ -61,5 +61,5 @@ module.exports.main = async (event) => {
         }
     }
 
-    return jnResponse.success(data);
+    return commonResponse.success(data);
 };

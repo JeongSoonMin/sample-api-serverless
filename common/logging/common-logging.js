@@ -61,7 +61,7 @@ function parseLoggingData(logLevel, event, message, appendJsonName, appendJson) 
 
         // request 로깅 필요 정보
         if (authData != undefined) {
-            // 중나 부가 필요정보
+            // 부가 필요정보
             if (authData['clientIp'] != undefined) {
                 loggingData['clientIp'] = authData['clientIp'];
             }

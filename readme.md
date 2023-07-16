@@ -128,19 +128,19 @@ logger.error(event, "에러 로그");
 * response 응답 내용을 공통 처리하여 호출하여 리턴한다.
 <pre><code>
 // 공통 response 처리 스크립트 import
-const jnResponse = require('../../common/response/response.js');
+const commonResponse = require('../../common/response/response.js');
 
 // 성공 response ( 리턴할 데이터 json )
-return jnResponse.success({ "count": 1234, "list": [ {"id": 1, "title": "테스트"}, {...} ] });
+return commonResponse.success({ "count": 1234, "list": [ {"id": 1, "title": "테스트"}, {...} ] });
 // 내려줄 데이터 없을 경우
-return jnResponse.success();
+return commonResponse.success();
 
 // 실패 response ( 오류메시지, 에러내용, 에러코드 )
-return jnResponse.failed("오류가 발생하였습니다.");
-return jnResponse.failed("오류가 발생하였습니다.", "필수값이 존재하지 않습니다.", "9999999");
+return commonResponse.failed("오류가 발생하였습니다.");
+return commonResponse.failed("오류가 발생하였습니다.", "필수값이 존재하지 않습니다.", "9999999");
 
 // html 로 페이지 표시 해 줄 경우 response
-return jnResponse.html("&lt;div&gt;&lt;strong&gt;테스트 중입니다.&lt;/strong&gt;&lt;/div&gt;");
+return commonResponse.html("&lt;div&gt;&lt;strong&gt;테스트 중입니다.&lt;/strong&gt;&lt;/div&gt;");
 </code></pre>
 
 ### 개발 테스트 - 로컬 환경 테스트 유의사항

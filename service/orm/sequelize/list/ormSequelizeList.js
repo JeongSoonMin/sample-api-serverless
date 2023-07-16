@@ -5,7 +5,7 @@ const { Sequelize, DataTypes } = require('sequelize');
 
 // common js import
 const logger = require('../../../../common/logging/common-logging.js');
-const jnResponse = require('../../../../common/response/response.js');
+const commonResponse = require('../../../../common/response/response.js');
 
 // DB 접속 정보 설정
 const sequelize = new Sequelize(
@@ -34,7 +34,7 @@ module.exports.main = async (event) => {
         logger.info(event,'Connection has been established successfully.');
     } catch (error) {
         logger.error(event,'Unable to connect to the database:', error);
-        return jnResponse.failed("DB 접속 오류", err);
+        return commonResponse.failed("DB 접속 오류", err);
     }*/
 
     // 목록 조회
@@ -42,5 +42,5 @@ module.exports.main = async (event) => {
     logger.info(event, "목록 조회 완료. 목록 갯수 : " + sampleList.length);
     //logger.info(event, JSON.stringify(testSample));
 
-    return jnResponse.success(sampleList);
+    return commonResponse.success(sampleList);
 };

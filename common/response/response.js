@@ -103,7 +103,7 @@ module.exports.html = async (html) => {
 
     responseData += "<head>";
     responseData += "<meta charset='UTF-8'>";
-    responseData += "<title>중고나라</title>";
+    responseData += "<title>샘플</title>";
     responseData += "</head>";
     responseData += "<body>";
 

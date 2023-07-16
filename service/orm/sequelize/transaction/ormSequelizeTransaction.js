@@ -5,7 +5,7 @@ const { Sequelize, DataTypes } = require('sequelize');
 
 // common js import
 const logger = require('../../../../common/logging/common-logging.js');
-const jnResponse = require('../../../../common/response/response.js');
+const commonResponse = require('../../../../common/response/response.js');
 
 // DB 접속 정보 설정
 const sequelize = new Sequelize(
@@ -78,8 +78,8 @@ module.exports.main = async (event) => {
         // 실패시 롤백
         logger.error(event, "쿼리 오류 발생. " + error);
         await t.rollback();
-        return jnResponse.failed("오류가 발생하였습니다.");
+        return commonResponse.failed("오류가 발생하였습니다.");
     }
 
-    return jnResponse.success(sampleData);
+    return commonResponse.success(sampleData);
 };

@@ -5,7 +5,7 @@ const { Sequelize, DataTypes } = require('sequelize');
 
 // common js import
 const logger = require('../../../../common/logging/common-logging.js');
-const jnResponse = require('../../../../common/response/response.js');
+const commonResponse = require('../../../../common/response/response.js');
 
 // DB 접속 정보 설정
 const sequelize = new Sequelize(
@@ -47,5 +47,5 @@ module.exports.main = async (event) => {
 
      */
 
-    return jnResponse.success(sampleData);
+    return commonResponse.success(sampleData);
 };

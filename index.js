@@ -1,5 +1,5 @@
 'use strict';
-const jnResponse = require("./common/response/response");
+const commonResponse = require("./common/response/response");
 const logger = require("./common/logging/common-logging");
 
 module.exports.handler = async (event) => {
@@ -82,6 +82,6 @@ module.exports.handler = async (event) => {
             return await require('./service/redis/delete/redisDelete').main(event);
         }
     } else {
-        return jnResponse.error("404", "Not Found.");
+        return commonResponse.error("404", "Not Found.");
     }
 };
